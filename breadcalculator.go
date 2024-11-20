@@ -44,13 +44,19 @@ package main
 import (
 	"errors"
 	"fmt"
+	"math"
+	"os"
+	"strconv"
 )
 
 func main() {
 	// Read params from terminal
+	weight, _ := strconv.Atoi(os.Args[1])
+	hydration, _ := strconv.Atoi(os.Args[2])
+	inoculation, _ := strconv.Atoi(os.Args[3])
 
 	// Create recipe
-	r, err := createRecipe(500, 40, 70)
+	r, err := createRecipe(weight, inoculation, hydration)
 	if err != nil {
 		panic(err)
 	}
@@ -64,21 +70,21 @@ func createRecipe(weight, inoculation, hydration int) (*Recipe, error) {
 		return nil, errors.New("non-negative weight, inoculation, hydration values in recipe only")
 	}
 
-	hydration_percentage := float32(hydration) / 100
-	total_flour := float32(weight) / (1 + hydration_percentage)
-	total_fluid := float32(weight) - total_flour
+	hydration_percentage := float64(hydration) / 100
+	total_flour := float64(weight) / (1 + hydration_percentage)
+	total_fluid := float64(weight) - total_flour
 
 	// total_flour = (1 + .5(inoculation_percentage)) * flour
 	// flour = total_flour / (1 + .5(inoculation_percentage)
-	inoculation_percentage := float32(inoculation) / 100
+	inoculation_percentage := float64(inoculation) / 100
 	flour := total_flour / (1 + (0.5 * inoculation_percentage))
 	fluid := total_fluid - (0.5 * inoculation_percentage * flour)
 
 	return &Recipe{
 		Flour:       flour,
 		Fluid:       fluid,
-		Inoculation: float32(weight) - flour - fluid,
-		TotalWeight: float32(weight),
+		Inoculation: float64(weight) - flour - fluid,
+		TotalWeight: float64(weight),
 	}, nil
 }
 
@@ -87,14 +93,20 @@ func createRecipe(weight, inoculation, hydration int) (*Recipe, error) {
 // Fluid is the mass of non-inoculation fluid.
 // Inoculation is the mass of starter.
 type Recipe struct {
-	Flour       float32
-	Fluid       float32
-	Inoculation float32
-	TotalWeight float32
+	Flour       float64
+	Fluid       float64
+	Inoculation float64
+	TotalWeight float64
 }
 
 func (r Recipe) String() string {
-	return fmt.Sprintf("Weight: %v\nFlour: %v\nFluid: %v\nInoculation: %v\n", r.TotalWeight, r.Flour, r.Fluid, r.Inoculation)
+	return fmt.Sprintf(
+		"Weight: %v\nFlour: %v\nWater: %v\nStarter: %v\n",
+		math.Round(r.TotalWeight),
+		math.Round(r.Flour),
+		math.Round(r.Fluid),
+		math.Round(r.Inoculation),
+	)
 }
 
 func (r Recipe) Valid() bool {
