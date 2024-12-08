@@ -36,6 +36,14 @@
 // total_flour = weight / (1 + hydration)
 // total_fluid = weight - total_flour
 //
+// salt is 2% of flour
+// total_weight is (water + flour + inoculation) * saltFactor + salt
+// total_weight = (water + 1.02*flour + inoculation) * saltFactor
+// saltFactor = total_weight / (water + 1.02*flour + inoculation)
+//
+// multiply flour, fluid and inoculation by saltFactor
+// saltFactor is total weight minus new flour, fluid, inoculation
+//
 // The steps to solving this system are as follows.
 // 1. Calculate total_flour and total_water based on the weight and the hydration percentage
 // 2.
@@ -56,7 +64,11 @@ func main() {
 	inoculation, _ := strconv.Atoi(os.Args[3])
 
 	// Create recipe
-	r, err := createRecipe(weight, inoculation, hydration)
+	r, err := createRecipe(
+		float64(weight),
+		float64(inoculation),
+		float64(hydration),
+	)
 	if err != nil {
 		panic(err)
 	}
@@ -65,52 +77,63 @@ func main() {
 	fmt.Println(r)
 }
 
-func createRecipe(weight, inoculation, hydration int) (*Recipe, error) {
+func createRecipe(weight, inoculation, hydration float64) (*Recipe, error) {
 	if weight <= 0 || inoculation <= 0 || hydration <= 0 {
 		return nil, errors.New("non-negative weight, inoculation, hydration values in recipe only")
 	}
 
-	hydration_percentage := float64(hydration) / 100
-	total_flour := float64(weight) / (1 + hydration_percentage)
-	total_fluid := float64(weight) - total_flour
+	hydration_percentage := hydration / 100
+	total_flour := weight / (1 + hydration_percentage)
+	total_fluid := weight - total_flour
 
 	// total_flour = (1 + .5(inoculation_percentage)) * flour
 	// flour = total_flour / (1 + .5(inoculation_percentage)
-	inoculation_percentage := float64(inoculation) / 100
+	inoculation_percentage := inoculation / 100
 	flour := total_flour / (1 + (0.5 * inoculation_percentage))
 	fluid := total_fluid - (0.5 * inoculation_percentage * flour)
+	starter := weight - flour - fluid
+
+	saltFactor := weight / ((1.02 * flour) + fluid + starter)
+	flour = saltFactor * flour
+	fluid = saltFactor * fluid
+	starter = saltFactor * starter
+	salt := weight - flour - fluid - starter
 
 	return &Recipe{
 		Flour:       flour,
-		Fluid:       fluid,
-		Inoculation: float64(weight) - flour - fluid,
-		TotalWeight: float64(weight),
+		Water:       fluid,
+		Starter:     starter,
+		Salt:        salt,
+		TotalWeight: weight,
 	}, nil
 }
 
 // Recipe is a dough recipe that assumes a starter hydration of 100%.
-// Flour is the mass of non-inoculation flour.
-// Fluid is the mass of non-inoculation fluid.
-// Inoculation is the mass of starter.
+// Flour is the mass of non-starter flour.
+// Water is the mass of non-starter fluid.
+// Starter is the mass of starter.
+// Salt is the mass in salt.
 type Recipe struct {
 	Flour       float64
-	Fluid       float64
-	Inoculation float64
+	Water       float64
+	Starter     float64
+	Salt        float64
 	TotalWeight float64
 }
 
 func (r Recipe) String() string {
 	return fmt.Sprintf(
-		"Weight: %v\nFlour: %v\nWater: %v\nStarter: %v\n",
+		"Weight: %v\nFlour: %v\nWater: %v\nStarter: %v\nSalt: %v\n",
 		math.Round(r.TotalWeight),
 		math.Round(r.Flour),
-		math.Round(r.Fluid),
-		math.Round(r.Inoculation),
+		math.Round(r.Water),
+		math.Round(r.Starter),
+		math.Round(r.Salt),
 	)
 }
 
 func (r Recipe) Valid() bool {
-	if int(r.TotalWeight) != int(r.Flour+r.Fluid+r.Fluid) {
+	if int(r.TotalWeight) != int(r.Flour+r.Water+r.Water+r.Salt) {
 		return false
 	}
 	return true
