@@ -51,23 +51,50 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"math"
-	"os"
-	"strconv"
 )
 
 func main() {
-	// Read params from terminal
-	weight, _ := strconv.Atoi(os.Args[1])
-	hydration, _ := strconv.Atoi(os.Args[2])
-	inoculation, _ := strconv.Atoi(os.Args[3])
+	var (
+		weight      int
+		hydration   int
+		inoculation int
+		salinity    int
+	)
+	flag.IntVar(
+		&weight,
+		"weight",
+		700,
+		"final dough weight",
+	)
+	flag.IntVar(
+		&hydration,
+		"hydration",
+		75,
+		"hydration percentage (0-100)",
+	)
+	flag.IntVar(
+		&inoculation,
+		"inoculation",
+		20,
+		"inoculation percentage (0-100)",
+	)
+	flag.IntVar(
+		&salinity,
+		"salinity",
+		3,
+		"salt percentage (0-100)",
+	)
+	flag.Parse()
 
 	// Create recipe
 	r, err := createRecipe(
 		float64(weight),
 		float64(inoculation),
 		float64(hydration),
+		float64(salinity),
 	)
 	if err != nil {
 		panic(err)
@@ -77,23 +104,23 @@ func main() {
 	fmt.Println(r)
 }
 
-func createRecipe(weight, inoculation, hydration float64) (*Recipe, error) {
-	if weight <= 0 || inoculation <= 0 || hydration <= 0 {
+func createRecipe(weight, inoculation, hydration, salinity float64) (*Recipe, error) {
+	if weight <= 0 || inoculation <= 0 || hydration <= 0 || salinity <= 0 {
 		return nil, errors.New("non-negative weight, inoculation, hydration values in recipe only")
 	}
+
+	saltPercentage := salinity / 100
 
 	hydration_percentage := hydration / 100
 	total_flour := weight / (1 + hydration_percentage)
 	total_fluid := weight - total_flour
 
-	// total_flour = (1 + .5(inoculation_percentage)) * flour
-	// flour = total_flour / (1 + .5(inoculation_percentage)
 	inoculation_percentage := inoculation / 100
 	flour := total_flour / (1 + (0.5 * inoculation_percentage))
 	fluid := total_fluid - (0.5 * inoculation_percentage * flour)
 	starter := weight - flour - fluid
 
-	saltFactor := weight / ((1.02 * flour) + fluid + starter)
+	saltFactor := weight / (((1 + saltPercentage) * flour) + fluid + starter)
 	flour = saltFactor * flour
 	fluid = saltFactor * fluid
 	starter = saltFactor * starter
