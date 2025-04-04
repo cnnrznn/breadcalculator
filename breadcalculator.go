@@ -84,7 +84,7 @@ func main() {
 	flag.IntVar(
 		&salinity,
 		"salinity",
-		3,
+		2,
 		"salt percentage (0-100)",
 	)
 	flag.Parse()
