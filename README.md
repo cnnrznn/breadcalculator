@@ -5,7 +5,7 @@ Welcome! Bread calculator is a tool for calculating a bread recipe based on the 
 ## Why?
 
 I did this because existing tools [1, 2, 3, 4, 5] do not calculate the recipe based on the final dough weight.
-This is annoying because I want to keep my final loaf weight the same while changing the percentages (salt, hydration, inoculation).
+This is annoying because I want to keep my final loaf weight the same while changing the percentages (salinity, hydration, inoculation).
 
 ## Installation
 
